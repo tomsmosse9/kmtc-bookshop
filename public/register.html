@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - KMTC Bookshop</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">KMTC Bookshop</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="login.html" class="btn-login">Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Register Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h2>Student Registration</h2>
+                    <p>Create your account to access study materials</p>
+                </div>
+
+                <form id="registerForm" class="form">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+                        <span class="error-message" id="fullNameError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="studentId">Student ID</label>
+                        <input type="text" id="studentId" name="studentId" placeholder="e.g., D/HRI/22029/248" required>
+                        <span class="error-message" id="studentIdError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" placeholder="your.email@kmtc.ac.ke" required>
+                        <span class="error-message" id="emailError"></span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="course">Course</label>
+                            <select id="course" name="course" required>
+                                <option value="">Select Course</option>
+                                <option value="Information Technology">Diploma</option>
+                                <option value="Health Records & IT">Certficate</option>
+                            </select>
+                            <span class="error-message" id="courseError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="level">Program Level</label>
+                            <select id="level" name="level" required>
+                                <option value="">Select Level</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Diploma">Upgrading</option>
+                                <option value="Certificate">Certificate</option>
+                            </select>
+                            <span class="error-message" id="levelError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="campus">Campus</label>
+                            <select id="campus" name="campus" required>
+                                <option value="">Select Campus</option>
+                                <option value="Nairobi">Siaya Campus</option>
+                                <option value="Nairobi">Nairobi Campus</option>
+                                <option value="Mombasa">Mombasa Campus</option>
+                                <option value="Kisumu">Kisumu Campus</option>
+                                <option value="Nakuru">Nakuru Campus</option>
+                                <option value="Nairobi">Other Campus</option>
+                            </select>
+                            <span class="error-message" id="campusError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="semester">Current Semester</label>
+                            <select id="semester" name="semester" required>
+                                <option value="">Select Semester</option>
+                                <option value="Semester 1">Semester 1</option>
+                                <option value="Semester 2">Semester 2</option>
+                                <option value="Semester 3">Semester 3</option>
+                                <option value="Semester 4">Semester 4</option>
+                                <option value="Semester 5">Semester 5</option>
+                                <option value="Semester 6">Semester 6</option>
+                            </select>
+                            <span class="error-message" id="semesterError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                        <span class="error-message" id="passwordError"></span>
+                        <p class="password-hint">Password must be at least 6 characters</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                        <span class="error-message" id="confirmPasswordError"></span>
+                    </div>
+
+                    <div class="form-group checkbox">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">I agree to the terms and conditions</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+
+                    <div class="message" id="successMessage" style="display: none;"></div>
+                    <div class="message error" id="errorMessage" style="display: none;"></div>
+                </form>
+
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="login.html">Login here</a></p>
+                </div>
+            </div>
+
+            <div class="auth-info">
+                <div class="info-card">
+                    <h3>✓ Secure Registration</h3>
+                    <p>Your information is protected with industry-standard security.</p>
+                </div>
+                <div class="info-card">
+                    <h3>✓ Instant Access</h3>
+                    <p>Start accessing study materials immediately after registration.</p>
+                </div>
+                <div class="info-card">
+                    <h3>✓ Easy to Use</h3>
+                    <p>Simple registration process - takes less than 2 minutes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 Kenya Medical Training College. All rights reserved. | KMTC Bookshop Student Portal</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
+</body>
+</html>

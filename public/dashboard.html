@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - KMTC Bookshop</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">KMTC Bookshop</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" class="user-name" id="userName"></a></li>
+                <li><button id="logoutBtn" class="btn-logout">Logout</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content -->
+    <section class="dashboard">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+                <a href="#" class="menu-item active" data-section="overview">
+                    <span class="menu-icon">📊</span>
+                    <span>Overview</span>
+                </a>
+                <a href="#" class="menu-item" data-section="browse">
+                    <span class="menu-icon">📥</span>
+                    <span>Browse Files</span>
+                </a>
+                <a href="#" class="menu-item" data-section="upload">
+                    <span class="menu-icon">⬆️</span>
+                    <span>Upload Files</span>
+                </a>
+                <a href="#" class="menu-item" data-section="profile">
+                    <span class="menu-icon">👤</span>
+                    <span>My Profile</span>
+                </a>
+                <a href="#" class="menu-item" data-section="chat">
+                    <span class="menu-icon">💬</span>
+                    <span>Group Chat</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-content">
+            <!-- Overview Section -->
+            <div class="section-content active" id="overview-section">
+                <div class="section-header">
+                    <h2>Welcome to KMTC Bookshop Dashboard</h2>
+                    <p>Your Academic Resource Center</p>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📖</div>
+                        <div class="stat-content">
+                            <h4>Total Materials</h4>
+                            <p class="stat-number" id="totalMaterials">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⬆️</div>
+                        <div class="stat-content">
+                            <h4>Files Uploaded</h4>
+                            <p class="stat-number" id="uploadedFiles">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📥</div>
+                        <div class="stat-content">
+                            <h4>Files Downloaded</h4>
+                            <p class="stat-number" id="downloadedFiles">0</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎓</div>
+                        <div class="stat-content">
+                            <h4>Your Course</h4>
+                            <p class="stat-text" id="userCourse">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Files -->
+                <div class="recent-section">
+                    <h3>Recent Materials</h3>
+                    <div class="files-list" id="recentFiles">
+                        <p class="loading">Loading recent files...</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="actions-grid">
+                        <a href="#" class="action-card" data-section="browse">
+                            <div class="action-icon">🔍</div>
+                            <h4>Browse All Files</h4>
+                            <p>Search and download study materials</p>
+                        </a>
+                        <a href="#" class="action-card" data-section="upload">
+                            <div class="action-icon">📤</div>
+                            <h4>Share Materials</h4>
+                            <p>Upload your notes and resources</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Browse Files Section -->
+            <div class="section-content" id="browse-section">
+                <div class="section-header">
+                    <h2>Browse Study Materials</h2>
+                    <p>Search and download files for your course</p>
+                </div>
+
+                <!-- Filters -->
+                <div class="filters-section">
+                    <div class="filter-group">
+                        <input type="text" id="searchInput" placeholder="Search files..." class="search-input">
+                        <button id="searchBtn" class="btn btn-secondary">Search</button>
+                    </div>
+                    <div class="filter-row">
+                        <select id="fileTypeFilter" class="filter-select">
+                            <option value="">All File Types</option>
+                            <option value="notes">Notes</option>
+                            <option value="past-paper">Past Paper</option>
+                            <option value="exam">Final Exam</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <select id="semesterFilter" class="filter-select">
+                            <option value="">All Semesters</option>
+                            <option value="Semester 1">Semester 1</option>
+                            <option value="Semester 2">Semester 2</option>
+                            <option value="Semester 3">Semester 3</option>
+                            <option value="Semester 4">Semester 4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Files List -->
+                <div class="files-list" id="filesList">
+                    <p class="loading">Loading files...</p>
+                </div>
+            </div>
+
+            <!-- Upload Section -->
+            <div class="section-content" id="upload-section">
+                <div class="section-header">
+                    <h2>Upload Study Materials</h2>
+                    <p>Share your notes and resources with fellow students</p>
+                </div>
+
+                <div class="upload-card">
+                    <form id="uploadForm" class="form">
+                        <div class="form-group">
+                            <label for="fileInput">Select File</label>
+                            <div class="file-upload-area">
+                                <input type="file" id="fileInput" name="file" required>
+                                <p class="upload-hint">Drag and drop your file here or click to select (Max 50MB)</p>
+                            </div>
+                            <span class="error-message" id="fileError"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fileName">File Name</label>
+                            <input type="text" id="fileName" name="fileName" placeholder="e.g., Mathematical Methods Notes" required>
+                            <span class="error-message" id="fileNameError"></span>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="uploadFileType">File Type</label>
+                                <select id="uploadFileType" name="fileType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="notes">Notes</option>
+                                    <option value="past-paper">Past Paper</option>
+                                    <option value="exam">Final Exam</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <span class="error-message" id="fileTypeError"></span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="uploadSemester">Semester</label>
+                                <select id="uploadSemester" name="semester" required>
+                                    <option value="">Select Semester</option>
+                                    <option value="Semester 1">Semester 1</option>
+                                    <option value="Semester 2">Semester 2</option>
+                                    <option value="Semester 3">Semester 3</option>
+                                    <option value="Semester 4">Semester 4</option>
+                                </select>
+                                <span class="error-message" id="semesterError"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Description</label>
+                            <textarea id="description" name="description" placeholder="Brief description of the file content..." rows="4" required></textarea>
+                            <span class="error-message" id="descriptionError"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block">Upload File</button>
+
+                        <div class="message" id="uploadMessage" style="display: none;"></div>
+                    </form>
+
+                    <div class="upload-info">
+                        <h4>Upload Guidelines</h4>
+                        <ul>
+                            <li>Maximum file size: 50MB</li>
+                            <li>Accepted formats: PDF, DOCX, DOC, XLSX, XLS, PPT, TXT, ZIP</li>
+                            <li>Provide clear and descriptive file names</li>
+                            <li>Include relevant semester and course information</li>
+                            <li>Do not upload copyrighted material without permission</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="section-content" id="profile-section">
+                <div class="section-header">
+                    <h2>My Profile</h2>
+                    <p>View and manage your account information</p>
+                </div>
+
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar">👤</div>
+                        <div class="profile-info">
+                            <h3 id="profileName">-</h3>
+                            <p id="profileStudentId">-</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-details">
+                        <div class="detail-row">
+                            <span class="label">Email:</span>
+                            <span class="value" id="profileEmail">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Course:</span>
+                            <span class="value" id="profileCourse">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Campus:</span>
+                            <span class="value" id="profileCampus">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Member Since:</span>
+                            <span class="value" id="profileMemberSince">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="danger-zone">
+                    <h4>Danger Zone</h4>
+                    <button id="deleteAccountBtn" class="btn btn-danger">Delete Account</button>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div class="section-content" id="chat-section">
+                <div class="section-header">
+                    <h2>Group Chat</h2>
+                    <p>Ask questions and help other students. Attach files if needed.</p>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-box">
+                    <!-- Search bar -->
+                    <div class="chat-search-bar">
+                        <input type="text" id="chatSearchInput" placeholder="Search messages..." class="chat-search-input" />
+                        <span id="searchMeta" class="search-meta"></span>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <p class="loading">Loading messages...</p>
+                    </div>
+
+                        <!-- Composer inside the chat box -->
+                        <div class="chat-composer">
+                            <div class="attachments-preview" id="attachmentsPreview"></div>
+                            <form id="chatForm" class="chat-form" style="display:flex; gap:8px; align-items:center; width:100%;">
+                                <input type="text" id="chatInput" name="text" placeholder="Write a question or reply..." style="flex:1; padding:8px;" />
+                                <input type="file" id="chatAttachments" name="attachments" multiple accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" />
+                                <button type="button" id="attachBtn" class="btn">Attach</button>
+                                <button type="button" id="cameraBtn" class="btn">Camera</button>
+                                <button type="submit" class="btn btn-primary">Send</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Camera modal -->
+                    <div id="cameraModal" class="camera-modal" style="display:none;">
+                        <div class="camera-content">
+                            <video id="cameraVideo" autoplay playsinline style="width:100%; max-height:360px; background:#000;"></video>
+                            <div class="camera-controls">
+                                <button id="capturePhoto" class="btn">Take Photo</button>
+                                <button id="startRecord" class="btn">Start Recording</button>
+                                <button id="stopRecord" class="btn" disabled>Stop</button>
+                                <button id="closeCamera" class="btn">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2026 Kenya Medical Training College. All rights reserved. | KMTC Bookshop Student Portal</p>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>
