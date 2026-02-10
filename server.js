@@ -38,6 +38,7 @@ const upload = multer({ storage: storage });
 const usersFile = path.join(__dirname, 'data', 'users.json');
 const filesMetadataFile = path.join(__dirname, 'data', 'files.json');
 const chatFile = path.join(__dirname, 'data', 'chat.json');
+const groupsFile = path.join(__dirname, 'data', 'groups.json');
 
 // Initialize data files
 if (!fs.existsSync(usersFile)) {
@@ -48,6 +49,17 @@ if (!fs.existsSync(filesMetadataFile)) {
 }
 if (!fs.existsSync(chatFile)) {
   fs.writeFileSync(chatFile, JSON.stringify([]));
+}
+if (!fs.existsSync(groupsFile)) {
+  const defaultGroup = [{
+    id: 'general',
+    name: 'General',
+    createdBy: 'system',
+    members: [],
+    createdAt: new Date().toISOString(),
+    isDefault: true
+  }];
+  fs.writeFileSync(groupsFile, JSON.stringify(defaultGroup, null, 2));
 }
 
 // Helper functions
@@ -75,12 +87,20 @@ function writeChat(messages) {
   fs.writeFileSync(chatFile, JSON.stringify(messages, null, 2));
 }
 
+function readGroups() {
+  return JSON.parse(fs.readFileSync(groupsFile, 'utf8'));
+}
+
+function writeGroups(groups) {
+  fs.writeFileSync(groupsFile, JSON.stringify(groups, null, 2));
+}
+
 function verifyToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) {
     return res.status(401).json({ message: 'No token provided' });
   }
-  
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.id;
@@ -103,7 +123,7 @@ app.post('/api/register', (req, res) => {
     }
 
     const users = readUsers();
-    
+
     // Check if student already exists
     if (users.find(u => u.studentId === studentId)) {
       return res.status(400).json({ message: 'Student ID already registered' });
@@ -121,22 +141,59 @@ app.post('/api/register', (req, res) => {
       email,
       course,
       campus,
+      role: 'student',
+      isVerified: false,
+      otp: Math.floor(100000 + Math.random() * 900000).toString(),
       createdAt: new Date().toISOString()
     };
 
     users.push(newUser);
     writeUsers(users);
 
-    res.status(201).json({ 
-      message: 'Registration successful',
-      userId: newUser.id
+    console.log(`[SIMULATED EMAIL] To: ${email} | Subject: Your OTP | Content: Your registration OTP is ${newUser.otp}`);
+
+    res.status(201).json({
+      message: 'Registration successful. Please verify your OTP.',
+      studentId: newUser.studentId
     });
   } catch (err) {
     res.status(500).json({ message: 'Registration error', error: err.message });
   }
 });
 
-// 2. LOGIN
+// 2. VERIFY OTP
+app.post('/api/verify-otp', (req, res) => {
+  try {
+    const { studentId, otp } = req.body;
+    if (!studentId || !otp) {
+      return res.status(400).json({ message: 'Student ID and OTP are required' });
+    }
+
+    const users = readUsers();
+    const userIndex = users.findIndex(u => u.studentId === studentId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (users[userIndex].isVerified) {
+      return res.status(400).json({ message: 'User already verified' });
+    }
+
+    if (users[userIndex].otp === otp) {
+      users[userIndex].isVerified = true;
+      delete users[userIndex].otp; // Remove OTP after success
+      writeUsers(users);
+      res.json({ message: 'Verification successful. You can now log in.' });
+    } else {
+      res.status(400).json({ message: 'Invalid OTP' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Verification error', error: err.message });
+  }
+});
+
+// 3. LOGIN
 app.post('/api/login', (req, res) => {
   try {
     const { studentId, password } = req.body;
@@ -152,12 +209,17 @@ app.post('/api/login', (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Check if verified
+    if (user.isVerified === false) {
+      return res.status(403).json({ message: 'Account not verified. Please verify your OTP.' });
+    }
+
     const validPassword = bcryptjs.compareSync(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '24h' });
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
     res.json({
       message: 'Login successful',
@@ -166,9 +228,7 @@ app.post('/api/login', (req, res) => {
         id: user.id,
         studentId: user.studentId,
         fullName: user.fullName,
-        email: user.email,
-        course: user.course,
-        campus: user.campus
+        role: user.role
       }
     });
   } catch (err) {
@@ -312,7 +372,7 @@ app.get('/api/search', verifyToken, (req, res) => {
     let filesMetadata = readFilesMetadata();
 
     if (q) {
-      filesMetadata = filesMetadata.filter(f => 
+      filesMetadata = filesMetadata.filter(f =>
         f.originalName.toLowerCase().includes(q.toLowerCase()) ||
         f.description.toLowerCase().includes(q.toLowerCase())
       );
@@ -369,7 +429,7 @@ app.post('/api/chat/messages', verifyToken, upload.array('attachments', 5), (req
       message.attachments = [];
       req.files.forEach(f => {
         const fileEntry = {
-          id: Date.now().toString() + '-att-' + Math.floor(Math.random()*1000),
+          id: Date.now().toString() + '-att-' + Math.floor(Math.random() * 1000),
           filename: f.filename,
           originalName: f.originalname,
           fileType: 'chat-attachment',
@@ -404,6 +464,172 @@ app.post('/api/chat/messages', verifyToken, upload.array('attachments', 5), (req
     writeChat(messages);
 
     res.status(201).json({ message: 'Message posted', data: message });
+  } catch (err) {
+    res.status(500).json({ message: 'Error posting message', error: err.message });
+  }
+});
+
+// 11. STUDENT SEARCH
+app.get('/api/students/search', verifyToken, (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json([]);
+
+    const users = readUsers();
+    const searchResults = users
+      .filter(u =>
+        u.id !== req.userId && (
+          u.fullName.toLowerCase().includes(q.toLowerCase()) ||
+          u.studentId.toLowerCase().includes(q.toLowerCase())
+        )
+      )
+      .map(u => ({
+        id: u.id,
+        fullName: u.fullName,
+        studentId: u.studentId,
+        campus: u.campus
+      }));
+
+    res.json(searchResults);
+  } catch (err) {
+    res.status(500).json({ message: 'Search error', error: err.message });
+  }
+});
+
+// 12. GET MY GROUPS
+app.get('/api/groups', verifyToken, (req, res) => {
+  try {
+    const groups = readGroups();
+    const myGroups = groups.filter(g =>
+      g.isDefault || g.members.includes(req.userId) || g.createdBy === req.userId
+    );
+    res.json(myGroups);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching groups', error: err.message });
+  }
+});
+
+// 13. CREATE GROUP
+app.post('/api/groups', verifyToken, (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ message: 'Group name required' });
+
+    const groups = readGroups();
+    const newGroup = {
+      id: Date.now().toString(),
+      name,
+      createdBy: req.userId,
+      members: [req.userId],
+      createdAt: new Date().toISOString()
+    };
+
+    groups.push(newGroup);
+    writeGroups(groups);
+
+    res.status(201).json(newGroup);
+  } catch (err) {
+    res.status(500).json({ message: 'Error creating group', error: err.message });
+  }
+});
+
+// 14. ADD MEMBER TO GROUP
+app.post('/api/groups/:groupId/members', verifyToken, (req, res) => {
+  try {
+    const { userId } = req.body;
+    const { groupId } = req.params;
+
+    if (!userId) return res.status(400).json({ message: 'User ID required' });
+
+    const groups = readGroups();
+    const groupIndex = groups.findIndex(g => g.id === groupId);
+
+    if (groupIndex === -1) return res.status(404).json({ message: 'Group not found' });
+
+    // Check if requester is member
+    if (!groups[groupIndex].isDefault && !groups[groupIndex].members.includes(req.userId)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    if (!groups[groupIndex].members.includes(userId)) {
+      groups[groupIndex].members.push(userId);
+      writeGroups(groups);
+    }
+
+    res.json({ message: 'Member added successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error adding member', error: err.message });
+  }
+});
+
+// 15. GET GROUP MESSAGES
+app.get('/api/groups/:groupId/messages', verifyToken, (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const messages = readChat();
+    const groupMessages = messages.filter(m => m.groupId === groupId || (!m.groupId && groupId === 'general'));
+    res.json(groupMessages);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching messages', error: err.message });
+  }
+});
+
+// 16. POST MESSAGE TO GROUP
+app.post('/api/groups/:groupId/messages', verifyToken, upload.array('attachments', 5), (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { text, replyTo } = req.body;
+
+    if (!text && (!req.files || req.files.length === 0)) {
+      return res.status(400).json({ message: 'Message text or attachment required' });
+    }
+
+    const users = readUsers();
+    const user = users.find(u => u.id === req.userId) || { fullName: 'Student' };
+
+    const messages = readChat();
+    const message = {
+      id: Date.now().toString(),
+      groupId,
+      userId: req.userId,
+      userName: user.fullName || user.studentId || 'Student',
+      text: text || null,
+      attachments: [],
+      replyTo: null,
+      createdAt: new Date().toISOString()
+    };
+
+    if (req.files && req.files.length) {
+      const filesMetadata = readFilesMetadata();
+      req.files.forEach(f => {
+        const fileEntry = {
+          id: Date.now().toString() + '-att-' + Math.floor(Math.random() * 1000),
+          filename: f.filename,
+          originalName: f.originalname,
+          fileType: 'chat-attachment',
+          description: 'Chat attachment',
+          uploadedBy: req.userId,
+          uploadedAt: new Date().toISOString(),
+          size: f.size,
+          path: f.path
+        };
+        filesMetadata.push(fileEntry);
+        message.attachments.push({ id: fileEntry.id, filename: fileEntry.filename, originalName: fileEntry.originalName, path: fileEntry.path });
+      });
+      writeFilesMetadata(filesMetadata);
+    }
+
+    if (replyTo) {
+      const target = messages.find(m => m.id === replyTo);
+      if (target) {
+        message.replyTo = { id: target.id, userName: target.userName, text: target.text };
+      }
+    }
+
+    messages.push(message);
+    writeChat(messages);
+
+    res.status(201).json(message);
   } catch (err) {
     res.status(500).json({ message: 'Error posting message', error: err.message });
   }

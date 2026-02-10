@@ -2,16 +2,16 @@
 // REGISTRATION PAGE LOGIC
 // ========================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const registerForm = document.getElementById('registerForm');
 
     if (registerForm) {
         registerForm.addEventListener('submit', handleRegistration);
-        
+
         // Clear errors on input
         const inputs = registerForm.querySelectorAll('input, select, textarea');
         inputs.forEach(input => {
-            input.addEventListener('focus', function() {
+            input.addEventListener('focus', function () {
                 clearFieldError(this.name);
             });
         });
@@ -120,7 +120,7 @@ async function handleRegistration(e) {
 
     try {
         // Show loading state
-        const submitBtn = document.querySelector('button[type="submit"]');
+        const submitBtn = registerForm.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Creating account...';
 
@@ -130,11 +130,55 @@ async function handleRegistration(e) {
             body: JSON.stringify(registrationData)
         });
 
-        // Registration successful
-        showMessage('successMessage', 'Registration successful! Redirecting to login...', 'success');
-        
+        // Registration successful - Show OTP section
+        showMessage('successMessage', 'Registration successful! Please enter the OTP sent to your email.', 'success');
+
+        // Hide registration form, show OTP section
+        registerForm.style.display = 'none';
+        const otpSection = document.getElementById('otpSection');
+        otpSection.style.display = 'block';
+
+        // Store studentId for OTP verification
+        otpSection.dataset.studentId = studentId;
+
+        // Setup OTP form
+        const otpForm = document.getElementById('otpForm');
+        otpForm.addEventListener('submit', handleOtpVerification);
+
+    } catch (error) {
+        showMessage('errorMessage', error.message || 'Registration failed. Please try again.', 'error');
+
+        // Re-enable submit button
+        const submitBtn = registerForm.querySelector('button[type="submit"]');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+    }
+}
+
+async function handleOtpVerification(e) {
+    e.preventDefault();
+    const otp = document.getElementById('otp').value.trim();
+    const studentId = document.getElementById('otpSection').dataset.studentId;
+
+    if (!otp || otp.length !== 6) {
+        showMessage('otpError', 'Please enter a valid 6-digit OTP', 'error');
+        return;
+    }
+
+    try {
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Verifying...';
+
+        const response = await apiRequest('/verify-otp', {
+            method: 'POST',
+            body: JSON.stringify({ studentId, otp })
+        });
+
+        showMessage('successMessage', 'Verification successful! Redirecting to login...', 'success');
+
         // Reset form
-        document.getElementById('registerForm').reset();
+        e.target.reset();
 
         // Redirect to login after 2 seconds
         setTimeout(() => {
@@ -142,12 +186,10 @@ async function handleRegistration(e) {
         }, 2000);
 
     } catch (error) {
-        showMessage('errorMessage', error.message || 'Registration failed. Please try again.', 'error');
-        
-        // Re-enable submit button
-        const submitBtn = document.querySelector('button[type="submit"]');
+        showMessage('otpError', error.message || 'Verification failed. Please try again.', 'error');
+        const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
+        submitBtn.textContent = 'Verify OTP';
     }
 }
 

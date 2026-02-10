@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - KMTC Bookshop</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
@@ -77,12 +79,36 @@
                             <label for="campus">Campus</label>
                             <select id="campus" name="campus" required>
                                 <option value="">Select Campus</option>
-                                <option value="Nairobi">Siaya Campus</option>
-                                <option value="Nairobi">Nairobi Campus</option>
-                                <option value="Mombasa">Mombasa Campus</option>
-                                <option value="Kisumu">Kisumu Campus</option>
-                                <option value="Nakuru">Nakuru Campus</option>
-                                <option value="Nairobi">Other Campus</option>
+                                <option value="Bondo Campus">KMTC Bondo Campus</option>
+                                <option value="Chwele Campus">KMTC Chwele Campus</option>
+                                <option value="Imenti Campus">KMTC Imenti Campus</option>
+                                <option value="Isiolo Campus">KMTC Isiolo Campus</option>
+                                <option value="Kapenguria Campus">KMTC Kapenguria Campus</option>
+                                <option value="Kapkatet Campus">KMTC Kapkatet Campus</option>
+                                <option value="Kaptumo Campus">KMTC Kaptumo Campus</option>
+                                <option value="Kitui Campus">KMTC Kitui Campus</option>
+                                <option value="Kuria Campus">KMTC Kuria Campus</option>
+                                <option value="Lamu Campus">KMTC Lamu Campus</option>
+                                <option value="Lugari Campus">KMTC Lugari Campus</option>
+                                <option value="Makueni – Mbuvo Satellite Campus">KMTC Makueni – Mbuvo Satellite Campus
+                                </option>
+                                <option value="Meru – Maua Satellite Campus">KMTC Meru – Maua Satellite Campus</option>
+                                <option value="Molo Campus">KMTC Molo Campus</option>
+                                <option value="Mombasa Campus">KMTC Mombasa Campus</option>
+                                <option value="Msambweni Campus">KMTC Msambweni Campus</option>
+                                <option value="Muranga Campus">KMTC Muranga Campus</option>
+                                <option value="Nairobi Campus">KMTC Nairobi Campus</option>
+                                <option value="Ndhiwa Campus">KMTC Ndhiwa Campus</option>
+                                <option value="Nyamache Campus">KMTC Nyamache Campus</option>
+                                <option value="Othaya Campus">KMTC Othaya Campus</option>
+                                <option value="Rachuonyo Campus">KMTC Rachuonyo Campus</option>
+                                <option value="Rera Campus">KMTC Rera Campus</option>
+                                <option value="Siaya Campus">KMTC Siaya Campus</option>
+                                <option value="Tana River Campus">KMTC Tana River Campus</option>
+                                <option value="Teso Campus">KMTC Teso Campus</option>
+                                <option value="Ugenya Campus">KMTC Ugenya Campus</option>
+                                <option value="Voi Campus">KMTC Voi Campus</option>
+                                <option value="Webuye Campus">KMTC Webuye Campus</option>
                             </select>
                             <span class="error-message" id="campusError"></span>
                         </div>
@@ -104,14 +130,16 @@
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                        <input type="password" id="password" name="password" placeholder="Create a strong password"
+                            required>
                         <span class="error-message" id="passwordError"></span>
                         <p class="password-hint">Password must be at least 6 characters</p>
                     </div>
 
                     <div class="form-group">
                         <label for="confirmPassword">Confirm Password</label>
-                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                        <input type="password" id="confirmPassword" name="confirmPassword"
+                            placeholder="Confirm your password" required>
                         <span class="error-message" id="confirmPasswordError"></span>
                     </div>
 
@@ -125,6 +153,26 @@
                     <div class="message" id="successMessage" style="display: none;"></div>
                     <div class="message error" id="errorMessage" style="display: none;"></div>
                 </form>
+
+                <!-- OTP Verification Section -->
+                <div id="otpSection" style="display: none; margin-top: 2rem;">
+                    <div class="auth-header">
+                        <h2>Verify Your Email</h2>
+                        <p>We've sent a 6-digit OTP to your email. Please enter it below.</p>
+                    </div>
+                    <form id="otpForm">
+                        <div class="form-group">
+                            <label for="otp">Enter 6-digit OTP</label>
+                            <input type="text" id="otp" name="otp" maxlength="6" pattern="\d{6}"
+                                placeholder="e.g. 123456" required>
+                            <span class="error-message" id="otpError"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Verify OTP</button>
+                    </form>
+                    <div class="auth-footer">
+                        <p>Didn't receive the OTP? <a href="#" id="resendOtp">Resend OTP</a></p>
+                    </div>
+                </div>
 
                 <div class="auth-footer">
                     <p>Already have an account? <a href="login.html">Login here</a></p>
@@ -158,4 +206,5 @@
     <script src="js/auth.js"></script>
     <script src="js/register.js"></script>
 </body>
+
 </html>

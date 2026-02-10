@@ -1,345 +1,212 @@
-// Chat client for dashboard
-(async function(){
+// Group-based Chat Client
+(async function () {
   const API = 'http://localhost:3000/api';
   const token = localStorage.getItem('token');
+
+  // Elements
+  const groupsListEl = document.getElementById('groupsList');
   const chatMessagesEl = document.getElementById('chatMessages');
+  const activeGroupHeader = document.getElementById('activeGroupHeader');
+  const currentGroupNameEl = document.getElementById('currentGroupName');
+  const groupMemberCountEl = document.getElementById('groupMemberCount');
+  const chatComposer = document.getElementById('chatComposer');
   const chatForm = document.getElementById('chatForm');
   const chatInput = document.getElementById('chatInput');
   const chatAttachmentsInput = document.getElementById('chatAttachments');
-  const attachBtn = document.getElementById('attachBtn');
-  const cameraBtn = document.getElementById('cameraBtn');
   const attachmentsPreview = document.getElementById('attachmentsPreview');
-  const cameraModal = document.getElementById('cameraModal');
-  const cameraVideo = document.getElementById('cameraVideo');
-  const capturePhotoBtn = document.getElementById('capturePhoto');
-  const startRecordBtn = document.getElementById('startRecord');
-  const stopRecordBtn = document.getElementById('stopRecord');
-  const closeCameraBtn = document.getElementById('closeCamera');
-  const chatSearchInput = document.getElementById('chatSearchInput');
-  const searchMeta = document.getElementById('searchMeta');
 
-  let lastFetch = null;
-  let replyToId = null;
-  let replyIndicatorEl = null;
-  let replyContainer = null;
-  let allMessages = []; // store all messages for search
+  // Modals
+  const createGroupModal = document.getElementById('createGroupModal');
+  const addMemberModal = document.getElementById('addMemberModal');
+  const showCreateGroupModalBtn = document.getElementById('showCreateGroupModal');
+  const showAddMemberModalBtn = document.getElementById('showAddMemberModal');
+  const closeModals = document.querySelectorAll('.close-modal');
+  const createGroupForm = document.getElementById('createGroupForm');
+  const studentSearchInput = document.getElementById('studentSearchInput');
+  const studentSearchResultsEl = document.getElementById('studentSearchResults');
 
-  function ensureReplyContainer(){
-    if(!replyContainer){
-      replyContainer = document.createElement('div');
-      if(chatForm && chatForm.parentNode){
-        chatForm.parentNode.insertBefore(replyContainer, chatForm);
-      } else if (chatMessagesEl && chatMessagesEl.parentNode){
-        chatMessagesEl.parentNode.insertBefore(replyContainer, chatMessagesEl.nextSibling);
-      } else {
-        document.body.appendChild(replyContainer);
-      }
-    }
+  // State
+  let currentGroupId = null;
+  let groups = [];
+  let pollingInterval = null;
+  let searchTimeout = null;
+
+  // Initialization
+  if (token) {
+    setupEventListeners();
+    await loadGroups();
   }
 
-  // Search and filter messages
-  function performSearch(){
-    const query = (chatSearchInput?.value || '').trim().toLowerCase();
-    const wrappers = document.querySelectorAll('.chat-message-wrapper');
-    let matchCount = 0;
+  function setupEventListeners() {
+    // Modal toggling
+    showCreateGroupModalBtn.onclick = () => createGroupModal.classList.add('show');
+    showAddMemberModalBtn.onclick = () => addMemberModal.classList.add('show');
 
-    if(!query){
-      // clear search: show all
-      wrappers.forEach(w => {
-        w.classList.remove('hidden');
-        const msg = w.querySelector('.chat-message');
-        if(msg) msg.innerHTML = msg.innerHTML.replace(/<mark>/g, '').replace(/<\/mark>/g, '');
+    closeModals.forEach(btn => {
+      btn.onclick = () => {
+        document.getElementById(btn.dataset.modal).classList.remove('show');
+      };
+    });
+
+    // Create Group
+    createGroupForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('newGroupName').value;
+      try {
+        const res = await fetch(`${API}/groups`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name })
+        });
+        if (res.ok) {
+          createGroupModal.classList.remove('show');
+          createGroupForm.reset();
+          await loadGroups();
+        }
+      } catch (err) { console.error(err); }
+    };
+
+    // Student Search
+    studentSearchInput.oninput = (e) => {
+      clearTimeout(searchTimeout);
+      const q = e.target.value;
+      if (q.length < 2) {
+        studentSearchResultsEl.innerHTML = '<p class="hint">Type at least 2 characters</p>';
+        return;
+      }
+      searchTimeout = setTimeout(() => searchStudents(q), 300);
+    };
+
+    // Send Message
+    chatForm.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!currentGroupId) return;
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      try {
+        const res = await fetch(`${API}/groups/${currentGroupId}/messages`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+        if (res.ok) {
+          chatInput.value = '';
+          await loadMessages();
+        }
+      } catch (err) { console.error(err); }
+    };
+
+    // UI Helpers
+    document.getElementById('attachBtn').onclick = () => chatAttachmentsInput.click();
+  }
+
+  async function loadGroups() {
+    try {
+      const res = await fetch(`${API}/groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if(searchMeta) searchMeta.textContent = '';
+      groups = await res.json();
+      renderGroups();
+    } catch (err) { console.error(err); }
+  }
+
+  function renderGroups() {
+    groupsListEl.innerHTML = groups.map(g => `
+            <div class="group-item ${g.id === currentGroupId ? 'active' : ''}" onclick="switchGroup('${g.id}')">
+                ${g.name}
+            </div>
+        `).join('') || '<p class="hint">No groups yet</p>';
+  }
+
+  window.switchGroup = async function (groupId) {
+    currentGroupId = groupId;
+    const group = groups.find(g => g.id === groupId);
+
+    // Update UI
+    currentGroupNameEl.textContent = group.name;
+    groupMemberCountEl.textContent = group.isDefault ? 'All students' : `${group.members.length} members`;
+    activeGroupHeader.style.display = 'flex';
+    chatComposer.style.display = 'block';
+    showAddMemberModalBtn.style.display = group.isDefault ? 'none' : 'block';
+
+    renderGroups();
+    await loadMessages();
+
+    // Start polling for this group
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(loadMessages, 4000);
+  };
+
+  async function loadMessages() {
+    if (!currentGroupId) return;
+    try {
+      const res = await fetch(`${API}/groups/${currentGroupId}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const messages = await res.json();
+      renderMessages(messages);
+    } catch (err) { console.error(err); }
+  }
+
+  function renderMessages(messages) {
+    chatMessagesEl.innerHTML = messages.map(m => `
+            <div class="chat-message-wrapper">
+                <div class="chat-message">
+                    <div class="chat-header">
+                        <strong>${escapeHtml(m.userName)}</strong>
+                        <span class="meta">${new Date(m.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                    <div class="chat-text">${escapeHtml(m.text)}</div>
+                </div>
+            </div>
+        `).join('') || '<div class="empty-chat"><p>No messages yet. Say hi!</p></div>';
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  async function searchStudents(q) {
+    try {
+      const res = await fetch(`${API}/students/search?q=${encodeURIComponent(q)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const results = await res.json();
+      renderSearchResults(results);
+    } catch (err) { console.error(err); }
+  }
+
+  function renderSearchResults(results) {
+    if (results.length === 0) {
+      studentSearchResultsEl.innerHTML = '<p class="hint">No students found</p>';
       return;
     }
+    studentSearchResultsEl.innerHTML = results.map(u => `
+            <div class="student-result">
+                <div class="student-info">
+                    <h4>${escapeHtml(u.fullName)}</h4>
+                    <p>${escapeHtml(u.studentId)} | ${u.campus}</p>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="addMember('${u.id}')">Add</button>
+            </div>
+        `).join('');
+  }
 
-    wrappers.forEach(w => {
-      const msg = w.querySelector('.chat-message');
-      if(!msg) { w.classList.add('hidden'); return; }
-      
-      // Get original text (remove any previous highlights first)
-      let text = msg.textContent;
-      const headerEl = msg.querySelector('.chat-header');
-      const bodyEl = msg.querySelector('.chat-text');
-      
-      const matchesInBody = bodyEl && bodyEl.textContent.toLowerCase().includes(query);
-      const matchesInMeta = text.toLowerCase().includes(query);
-      
-      if(matchesInBody || matchesInMeta){
-        w.classList.remove('hidden');
-        matchCount++;
-        
-        // highlight in body
-        if(bodyEl && matchesInBody){
-          let content = bodyEl.textContent;
-          const regex = new RegExp(`(${query})`, 'gi');
-          content = content.replace(regex, '<mark>$1</mark>');
-          bodyEl.innerHTML = content;
-        }
-      } else {
-        w.classList.add('hidden');
+  window.addMember = async function (userId) {
+    if (!currentGroupId) return;
+    try {
+      const res = await fetch(`${API}/groups/${currentGroupId}/members`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        alert('Member added!');
+        await loadGroups();
       }
-    });
+    } catch (err) { console.error(err); }
+  };
 
-    if(searchMeta) searchMeta.textContent = `${matchCount} match${matchCount !== 1 ? 'es' : ''}`;
-  }
-
-  function ensureReplyContainer(){
-
-  function showReplyIndicator(target){
-    ensureReplyContainer();
-    replyToId = target.id;
-    if(replyIndicatorEl) replyIndicatorEl.remove();
-    replyIndicatorEl = document.createElement('div');
-    replyIndicatorEl.className = 'replying-indicator';
-    const short = (target.text || '').slice(0, 120);
-    replyIndicatorEl.innerHTML = `Replying to <strong>${escapeHtml(target.userName)}</strong>: "${escapeHtml(short)}" <button type="button" id="cancelReply" style="margin-left:8px;padding:4px 8px;">Cancel</button>`;
-    replyContainer.appendChild(replyIndicatorEl);
-    const cancel = document.getElementById('cancelReply');
-    if(cancel) cancel.addEventListener('click', ()=> { replyToId = null; replyIndicatorEl.remove(); replyIndicatorEl = null; });
-    if(chatInput) chatInput.focus();
-  }
-
-  function startReply(target){
-    showReplyIndicator(target);
-  }
-
-  function createMessageElement(m){
-    const wrapper = document.createElement('div');
-    wrapper.className = 'chat-message-wrapper';
-
-    const msg = document.createElement('div');
-    msg.className = 'chat-message';
-
-    const header = document.createElement('div');
-    header.className = 'chat-header';
-    header.innerHTML = `<strong>${escapeHtml(m.userName)}</strong> <span class="meta">${new Date(m.createdAt).toLocaleString()}</span>`;
-    msg.appendChild(header);
-
-    if(m.replyTo){
-      const quote = document.createElement('div');
-      quote.className = 'chat-reply-quote';
-      quote.innerHTML = `<em>Replying to <strong>${escapeHtml(m.replyTo.userName)}</strong>: ${escapeHtml(m.replyTo.text||'')}</em>`;
-      msg.appendChild(quote);
-    }
-
-    if(m.text){
-      const body = document.createElement('div');
-      body.className = 'chat-text';
-      body.textContent = m.text;
-      msg.appendChild(body);
-    }
-
-    if(m.attachments && m.attachments.length){
-      const attWrap = document.createElement('div');
-      attWrap.className = 'chat-attachments';
-      m.attachments.forEach(aMeta => {
-        const att = document.createElement('div');
-        att.className = 'chat-attachment';
-        const a = document.createElement('a');
-        a.href = `/uploads/${encodeURIComponent(aMeta.filename)}`;
-        a.target = '_blank';
-        a.textContent = aMeta.originalName || aMeta.filename || 'attachment';
-        att.appendChild(a);
-        attWrap.appendChild(att);
-      });
-      msg.appendChild(attWrap);
-    }
-
-    // Reply action
-    const actions = document.createElement('div');
-    actions.className = 'chat-actions';
-    const replyBtn = document.createElement('button');
-    replyBtn.className = 'reply-btn';
-    replyBtn.type = 'button';
-    replyBtn.textContent = 'Reply';
-    replyBtn.addEventListener('click', ()=> startReply(m));
-    actions.appendChild(replyBtn);
-    wrapper.appendChild(msg);
-    wrapper.appendChild(actions);
-
-    // touch / slide handling for small screens: reveal actions on left swipe
-    let startX = 0;
-    let moved = false;
-    wrapper.addEventListener('touchstart', e => { startX = e.touches[0].clientX; moved = false; });
-    wrapper.addEventListener('touchmove', e => {
-      const dx = e.touches[0].clientX - startX;
-      if (dx < -20) {
-        wrapper.style.transform = 'translateX(-80px)';
-        moved = true;
-      }
-    });
-    wrapper.addEventListener('touchend', () => { if (!moved) wrapper.style.transform = ''; });
-
-    // mouse drag for desktop (optional): allow small slide
-    let isDown = false; let mouseStartX = 0;
-    wrapper.addEventListener('mousedown', e => { isDown = true; mouseStartX = e.clientX; });
-    window.addEventListener('mousemove', e => {
-      if(!isDown) return;
-      const dx = e.clientX - mouseStartX;
-      if(dx < -20) wrapper.style.transform = 'translateX(-80px)';
-    });
-    window.addEventListener('mouseup', ()=> { isDown = false; });
-
-    return wrapper;
-  }
-
-  function escapeHtml(s){
-    if(!s) return '';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  async function loadMessages(){
-    try{
-      const url = lastFetch ? `${API}/chat/messages?since=${encodeURIComponent(lastFetch)}` : `${API}/chat/messages`;
-      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-      if(!res.ok) throw new Error('Failed to load messages');
-      const messages = await res.json();
-      if(!messages || messages.length===0) return;
-      // append messages
-      messages.forEach(m => {
-        const el = createMessageElement(m);
-        chatMessagesEl.appendChild(el);
-      });
-      lastFetch = new Date().toISOString();
-      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-    }catch(err){
-      console.error('Chat load error', err);
-    }
-  }
-
-  if(chatForm){
-    // reply container and handlers are created lazily via ensureReplyContainer/showReplyIndicator
-    // attachments managed client-side (can be multiple)
-    let attachmentsList = [];
-
-    // wire up search
-    if(chatSearchInput){
-      chatSearchInput.addEventListener('input', performSearch);
-    }
-    if(attachBtn && chatAttachmentsInput){
-      attachBtn.addEventListener('click', ()=> chatAttachmentsInput.click());
-      chatAttachmentsInput.addEventListener('change', (ev)=>{
-        const files = Array.from(ev.target.files || []);
-        files.forEach(f => { attachmentsList.push(f); renderAttachments(); });
-        // clear native input so same file can be re-selected if needed
-        chatAttachmentsInput.value = '';
-      });
-    }
-
-    // camera handling
-    let mediaStream = null;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    function openCamera(){
-      if(!cameraModal) return;
-      cameraModal.style.display = 'flex';
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then(stream => {
-        mediaStream = stream;
-        cameraVideo.srcObject = stream;
-      }).catch(err => { alert('Camera access denied or unavailable'); console.error(err); });
-    }
-    function closeCamera(){
-      cameraModal.style.display = 'none';
-      if(mediaStream){ mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-      if(mediaRecorder && mediaRecorder.state !== 'inactive'){ mediaRecorder.stop(); }
-      recordedChunks = [];
-    }
-    function capturePhoto(){
-      if(!cameraVideo) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = cameraVideo.videoWidth || 640;
-      canvas.height = cameraVideo.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => {
-        const file = new File([blob], `photo-${Date.now()}.png`, { type: 'image/png' });
-        attachmentsList.push(file);
-        renderAttachments();
-      }, 'image/png');
-    }
-    function startRecording(){
-      if(!mediaStream) return alert('Camera not open');
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'video/webm;codecs=vp8' });
-      mediaRecorder.ondataavailable = e => { if(e.data && e.data.size) recordedChunks.push(e.data); };
-      mediaRecorder.onstop = ()=>{
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const file = new File([blob], `video-${Date.now()}.webm`, { type: 'video/webm' });
-        attachmentsList.push(file);
-        renderAttachments();
-        recordedChunks = [];
-      };
-      mediaRecorder.start();
-      startRecordBtn.disabled = true; stopRecordBtn.disabled = false;
-    }
-    function stopRecording(){
-      if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-      startRecordBtn.disabled = false; stopRecordBtn.disabled = true;
-    }
-
-    if(cameraBtn) cameraBtn.addEventListener('click', openCamera);
-    if(closeCameraBtn) closeCameraBtn.addEventListener('click', closeCamera);
-    if(capturePhotoBtn) capturePhotoBtn.addEventListener('click', capturePhoto);
-    if(startRecordBtn) startRecordBtn.addEventListener('click', startRecording);
-    if(stopRecordBtn) stopRecordBtn.addEventListener('click', stopRecording);
-
-    function renderAttachments(){
-      if(!attachmentsPreview) return;
-      attachmentsPreview.innerHTML = '';
-      attachmentsList.forEach((f, idx) => {
-        const item = document.createElement('div'); item.className = 'attachment-item';
-        if(f.type.startsWith('image/')){
-          const img = document.createElement('img'); img.className = 'attachment-thumb'; img.src = URL.createObjectURL(f);
-          item.appendChild(img);
-        } else if (f.type.startsWith('video/')){
-          const vid = document.createElement('video'); vid.className = 'attachment-thumb'; vid.src = URL.createObjectURL(f); vid.muted = true; vid.controls = false; vid.play(); item.appendChild(vid);
-        } else {
-          const icon = document.createElement('div'); icon.textContent = f.name; item.appendChild(icon);
-        }
-        const remove = document.createElement('button'); remove.textContent = 'x'; remove.style.marginTop='4px'; remove.addEventListener('click', ()=>{ attachmentsList.splice(idx,1); renderAttachments(); });
-        item.appendChild(remove);
-        attachmentsPreview.appendChild(item);
-      });
-    }
-
-    chatForm.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const text = chatInput.value.trim();
-      if(!text && attachmentsList.length === 0) return;
-
-      const form = new FormData();
-      form.append('text', text);
-      if(replyToId) form.append('replyTo', replyToId);
-      // append attachmentsList as multiple 'attachments' fields
-      attachmentsList.forEach(f => form.append('attachments', f, f.name));
-
-      try{
-        const res = await fetch(`${API}/chat/messages`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: form
-        });
-        if(!res.ok) throw new Error('Send failed');
-        const data = await res.json();
-        // append message
-        const el = createMessageElement(data.data);
-        chatMessagesEl.appendChild(el);
-        chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-        chatInput.value = '';
-        attachmentsList = [];
-        renderAttachments();
-        // clear reply state
-        if(replyIndicatorEl){ replyIndicatorEl.remove(); replyIndicatorEl = null; replyToId = null; }
-      }catch(err){
-        console.error('Send error', err);
-        alert('Failed to send message');
-      }
-    });
-
-    // initial load and polling
-    await loadMessages();
-    setInterval(loadMessages, 4000);
+  function escapeHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 })();

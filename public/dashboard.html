@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - KMTC Bookshop</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
@@ -173,7 +175,8 @@
 
                         <div class="form-group">
                             <label for="fileName">File Name</label>
-                            <input type="text" id="fileName" name="fileName" placeholder="e.g., Mathematical Methods Notes" required>
+                            <input type="text" id="fileName" name="fileName"
+                                placeholder="e.g., Mathematical Methods Notes" required>
                             <span class="error-message" id="fileNameError"></span>
                         </div>
 
@@ -205,7 +208,8 @@
 
                         <div class="form-group">
                             <label for="description">Description</label>
-                            <textarea id="description" name="description" placeholder="Brief description of the file content..." rows="4" required></textarea>
+                            <textarea id="description" name="description"
+                                placeholder="Brief description of the file content..." rows="4" required></textarea>
                             <span class="error-message" id="descriptionError"></span>
                         </div>
 
@@ -272,44 +276,98 @@
             <!-- Chat Section -->
             <div class="section-content" id="chat-section">
                 <div class="section-header">
-                    <h2>Group Chat</h2>
-                    <p>Ask questions and help other students. Attach files if needed.</p>
+                    <h2>Groups & Discussions</h2>
+                    <p>Create groups, add friends, and share knowledge.</p>
                 </div>
 
-                <div class="chat-container">
-                    <div class="chat-box">
-                    <!-- Search bar -->
-                    <div class="chat-search-bar">
-                        <input type="text" id="chatSearchInput" placeholder="Search messages..." class="chat-search-input" />
-                        <span id="searchMeta" class="search-meta"></span>
-                    </div>
-
-                    <div class="chat-messages" id="chatMessages">
-                        <p class="loading">Loading messages...</p>
-                    </div>
-
-                        <!-- Composer inside the chat box -->
-                        <div class="chat-composer">
-                            <div class="attachments-preview" id="attachmentsPreview"></div>
-                            <form id="chatForm" class="chat-form" style="display:flex; gap:8px; align-items:center; width:100%;">
-                                <input type="text" id="chatInput" name="text" placeholder="Write a question or reply..." style="flex:1; padding:8px;" />
-                                <input type="file" id="chatAttachments" name="attachments" multiple accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none;" />
-                                <button type="button" id="attachBtn" class="btn">Attach</button>
-                                <button type="button" id="cameraBtn" class="btn">Camera</button>
-                                <button type="submit" class="btn btn-primary">Send</button>
-                            </form>
+                <div class="chat-layout">
+                    <!-- Groups Sidebar -->
+                    <div class="groups-sidebar">
+                        <div class="sidebar-header">
+                            <h3>My Groups</h3>
+                            <button id="showCreateGroupModal" class="btn btn-sm btn-primary">+</button>
+                        </div>
+                        <div class="groups-list" id="groupsList">
+                            <p class="loading">Loading groups...</p>
                         </div>
                     </div>
 
-                    <!-- Camera modal -->
-                    <div id="cameraModal" class="camera-modal" style="display:none;">
-                        <div class="camera-content">
-                            <video id="cameraVideo" autoplay playsinline style="width:100%; max-height:360px; background:#000;"></video>
-                            <div class="camera-controls">
-                                <button id="capturePhoto" class="btn">Take Photo</button>
-                                <button id="startRecord" class="btn">Start Recording</button>
-                                <button id="stopRecord" class="btn" disabled>Stop</button>
-                                <button id="closeCamera" class="btn">Close</button>
+                    <!-- Chat Box Area -->
+                    <div class="chat-box-area">
+                        <div class="active-group-header" id="activeGroupHeader" style="display: none;">
+                            <div class="group-info">
+                                <h3 id="currentGroupName">Select a group</h3>
+                                <p id="groupMemberCount">0 members</p>
+                            </div>
+                            <div class="group-actions">
+                                <button id="showAddMemberModal" class="btn btn-sm btn-secondary">Add Members</button>
+                            </div>
+                        </div>
+
+                        <div class="chat-container">
+                            <div class="chat-box">
+                                <!-- Search bar -->
+                                <div class="chat-search-bar">
+                                    <input type="text" id="chatSearchInput" placeholder="Search messages..."
+                                        class="chat-search-input" />
+                                    <span id="searchMeta" class="search-meta"></span>
+                                </div>
+
+                                <div class="chat-messages" id="chatMessages">
+                                    <div class="empty-chat">
+                                        <p>Select a group on the left to start chatting</p>
+                                    </div>
+                                </div>
+
+                                <!-- Composer inside the chat box -->
+                                <div class="chat-composer" id="chatComposer" style="display: none;">
+                                    <div class="attachments-preview" id="attachmentsPreview"></div>
+                                    <form id="chatForm" class="chat-form">
+                                        <input type="text" id="chatInput" name="text" placeholder="Write a message..."
+                                            required />
+                                        <input type="file" id="chatAttachments" name="attachments" multiple
+                                            style="display:none;" />
+                                        <button type="button" id="attachBtn" class="btn-icon"
+                                            title="Attach Files">📎</button>
+                                        <button type="submit" class="btn btn-primary">Send</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Group Modal -->
+                <div id="createGroupModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Create New Group</h3>
+                            <span class="close-modal" data-modal="createGroupModal">&times;</span>
+                        </div>
+                        <form id="createGroupForm">
+                            <div class="form-group">
+                                <label for="newGroupName">Group Name</label>
+                                <input type="text" id="newGroupName" placeholder="e.g. Study Group 1" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Create</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Add Member Modal -->
+                <div id="addMemberModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Add Students to Group</h3>
+                            <span class="close-modal" data-modal="addMemberModal">&times;</span>
+                        </div>
+                        <div class="search-students-container">
+                            <div class="form-group">
+                                <input type="text" id="studentSearchInput"
+                                    placeholder="Search by name or student ID...">
+                            </div>
+                            <div id="studentSearchResults" class="search-results">
+                                <p class="hint">Type at least 2 characters to search</p>
                             </div>
                         </div>
                     </div>
@@ -329,4 +387,5 @@
     <script src="js/dashboard.js"></script>
     <script src="js/chat.js"></script>
 </body>
+
 </html>
