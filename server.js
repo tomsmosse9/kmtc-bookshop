@@ -9,7 +9,11 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'kmtc-secret-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is not set!');
+  process.exit(1);
+}
 
 // Middleware
 app.use(cors());
