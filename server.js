@@ -45,6 +45,14 @@ const chatFile = path.join(__dirname, 'data', 'chat.json');
 const groupsFile = path.join(__dirname, 'data', 'groups.json');
 
 // Initialize data files
+const dataDir = path.join(__dirname, 'data');
+const uploadsDir = path.join(__dirname, 'uploads');
+[dataDir, uploadsDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
+
 if (!fs.existsSync(usersFile)) {
   fs.writeFileSync(usersFile, JSON.stringify([]));
 }
